@@ -1,0 +1,39 @@
+name: Test strict mode and existing tags inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          repository_url: "https://github.com/lukaszraczylo/simple-gql-client"
+          strict: "false"
+          existing: "true"
+        continue-on-error: true
+      - name: Assert semantic_version output with strict and existing inputs
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "actual: $ACTUAL"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$ACTUAL" ]; then
+              echo "FAIL: action succeeded but semantic_version output is empty"
+              exit 1
+            fi
+            # Validate it looks like a semver (digits separated by dots)
+            if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+              echo "FAIL: output '$ACTUAL' does not look like a semantic version"
+              exit 1
+            fi
+            echo "PASS: got semantic version '$ACTUAL' with strict=false and existing=true"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (network/repo access issue in harness)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

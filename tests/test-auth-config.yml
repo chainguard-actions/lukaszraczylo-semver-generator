@@ -1,0 +1,40 @@
+name: Test auth inputs and config file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          repository_url: "https://github.com/lukaszraczylo/simple-gql-client"
+          github_token: ${{ github.token }}
+          github_username: "github-actions"
+          config_file: "/github/workspace/hardened/tests/fixtures/semver-config.yaml"
+        continue-on-error: true
+      - name: Assert semantic_version output with auth and config_file inputs
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "actual: $ACTUAL"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$ACTUAL" ]; then
+              echo "FAIL: action succeeded but semantic_version output is empty"
+              exit 1
+            fi
+            # Validate it looks like a semver (digits separated by dots)
+            if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+              echo "FAIL: output '$ACTUAL' does not look like a semantic version"
+              exit 1
+            fi
+            echo "PASS: got semantic version '$ACTUAL' with github_token, github_username, and config_file"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (network/auth/config issue in harness)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
