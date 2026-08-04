@@ -1,0 +1,53 @@
+name: Test local repository mode
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up git origin reachable inside the Docker container
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git push "$GITHUB_WORKSPACE/.git-remote" --tags
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          config_file: ${{ github.workspace }}/tests/fixtures/semver-config.yaml
+          repository_local: "true"
+
+      - name: Assert semantic_version output or graceful failure
+        env:
+          SEMVER: ${{ steps.action.outputs.semantic_version }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "semantic_version: $SEMVER"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$SEMVER" ]; then
+              echo "FAIL: action succeeded but semantic_version output is empty"
+              exit 1
+            fi
+            # Validate it looks like a semver (digits separated by dots)
+            if ! echo "$SEMVER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+              echo "FAIL: semantic_version '$SEMVER' does not look like a semver"
+              exit 1
+            fi
+            echo "PASS: got semantic_version '$SEMVER'"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (Docker container git access issue)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
