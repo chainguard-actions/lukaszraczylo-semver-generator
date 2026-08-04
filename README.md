@@ -8,6 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v1.17.10 | [`v1.17.10`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.10) | [`7b6c46d`](https://github.com/lukaszraczylo/semver-generator/commit/7b6c46dcb80756cb12e60995207ccd13ca6d70ca) |
 | v1.17.6 | [`v1.17.6`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.6) | [`1b80eab`](https://github.com/lukaszraczylo/semver-generator/commit/1b80eab874d615918295f70584a6e62acd30486c) |
 
 ## Privacy
