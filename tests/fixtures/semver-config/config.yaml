@@ -1,0 +1,18 @@
+version: 1
+force:
+  major: 1
+  existing: false
+  strict: false
+blacklist:
+  - "Merge branch"
+  - "Merge pull request"
+wording:
+  patch:
+    - update
+    - initial
+    - fix
+  minor:
+    - change
+    - improve
+  major:
+    - breaking
