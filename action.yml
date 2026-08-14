@@ -1,0 +1,39 @@
+# action.yml
+name: "Semantic Version Generator"
+description: "Automagic semantic version generator"
+author: Lukasz Raczylo
+branding:
+  icon: chevron-right
+  color: gray-dark
+inputs:
+  config_file:
+    description: "Configuration file"
+    required: false
+  repository_url:
+    description: "Repository URL"
+    required: false
+    default: "https://github.com/lukaszraczylo/simple-gql-client"
+  repository_local:
+    description: "Use already cloned repository in current directory"
+    required: false
+  github_token:
+    description: "GitHub Personal Access Token OR password"
+    required: false
+  github_username:
+    description: "GitHub or other git hosting provider username"
+    required: false
+  strict:
+    description: "Strict mode"
+    required: false
+  existing:
+    description: "Respect existing tags"
+    required: false
+  debugmode:
+    description: "Debug mode"
+    required: false
+outputs:
+  semantic_version:
+    description: "Calculated semantic version"
+runs:
+  using: "docker"
+  image: "docker://ghcr.io/lukaszraczylo/semver-generator:1.17.16@sha256:cb1fe9f8213d0cf66ff7c56a5d5c836f769a95b519848e84b6dfa97fb8b45a6e"
