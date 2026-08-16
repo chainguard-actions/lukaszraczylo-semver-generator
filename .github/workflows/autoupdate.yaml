@@ -1,0 +1,19 @@
+name: Autoupdate go.mod and go.sum
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+jobs:
+  autoupdate:
+    uses: lukaszraczylo/shared-actions/.github/workflows/go-autoupdate.yaml@5cf1402555de4e9060aca71453d8259c0d40fe9c # main
+    with:
+      go-version: "1.25"
+      release-workflow: "release.yaml"
+    secrets: inherit

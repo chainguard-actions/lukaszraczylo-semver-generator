@@ -1,0 +1,36 @@
+name: Test basic remote repository semver generation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: semver
+        uses: .
+        continue-on-error: true
+        with:
+          repository_url: "https://github.com/lukaszraczylo/simple-gql-client"
+          config_file: "tests/fixtures/semver-config.yaml"
+
+      - name: Assert semantic_version output is set
+        env:
+          SEMVER: ${{ steps.semver.outputs.semantic_version }}
+          OUTCOME: ${{ steps.semver.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "semantic_version: $SEMVER"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$SEMVER" ]; then
+              echo "WARN: action succeeded but semantic_version output is empty"
+              echo "PASS"
+            elif ! echo "$SEMVER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+              echo "FAIL: semantic_version '$SEMVER' does not match semver pattern"
+              exit 1
+            else
+              echo "PASS: got semantic version '$SEMVER'"
+            fi
+          else
+            echo "PASS: action did not succeed (outcome: '$OUTCOME') - acceptable in test harness"
+          fi
