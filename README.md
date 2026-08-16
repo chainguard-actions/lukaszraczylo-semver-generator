@@ -10,6 +10,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 |---------|-----|-----------------|
 | v1.16.5 | [`v1.16.5`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.16.5) | [`5f205e9`](https://github.com/lukaszraczylo/semver-generator/commit/5f205e98567f537739f06c0254705ea2414cfaec) |
 | v1.17.10 | [`v1.17.10`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.10) | [`7b6c46d`](https://github.com/lukaszraczylo/semver-generator/commit/7b6c46dcb80756cb12e60995207ccd13ca6d70ca) |
+| v1.17.14 | [`v1.17.14`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.14) | [`9d5b4b0`](https://github.com/lukaszraczylo/semver-generator/commit/9d5b4b0b503562fecc7c60ace69ddfe10f9957a2) |
 | v1.17.18 | [`v1.17.18`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.18) | [`b5eb8ae`](https://github.com/lukaszraczylo/semver-generator/commit/b5eb8ae15a62d76e81dc4661a49209a8502cf1d3) |
 | v1.17.6 | [`v1.17.6`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.6) | [`1b80eab`](https://github.com/lukaszraczylo/semver-generator/commit/1b80eab874d615918295f70584a6e62acd30486c) |
 | v1.17.8 | [`v1.17.8`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.8) | [`a59be0e`](https://github.com/lukaszraczylo/semver-generator/commit/a59be0efeaba93d4eaed29340334537e2d73ce98) |
