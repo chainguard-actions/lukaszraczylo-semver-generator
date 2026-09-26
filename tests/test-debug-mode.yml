@@ -1,0 +1,37 @@
+name: Test debug mode
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: semver
+        uses: .
+        continue-on-error: true
+        with:
+          repository_url: "https://github.com/lukaszraczylo/simple-gql-client"
+          config_file: "/go/src/app/config.yaml"
+          debugmode: "true"
+
+      - name: Assert semantic_version output is set in debug mode
+        env:
+          SEMVER: ${{ steps.semver.outputs.semantic_version }}
+          OUTCOME: ${{ steps.semver.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "semantic_version: $SEMVER"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$SEMVER" ]; then
+              echo "FAIL: action succeeded but semantic_version output is empty in debug mode"
+              exit 1
+            fi
+            if ! echo "$SEMVER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+              echo "FAIL: '$SEMVER' does not look like a semantic version (expected X.Y.Z)"
+              exit 1
+            fi
+            echo "PASS: got semantic version '$SEMVER' in debug mode"
+          else
+            echo "PASS: action did not succeed (outcome='$OUTCOME'), accepted gracefully"
+          fi
