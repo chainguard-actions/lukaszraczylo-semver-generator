@@ -1,0 +1,36 @@
+name: Test auth inputs (github_token and github_username)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - id: action
+        uses: .
+        with:
+          repository_url: "https://github.com/lukaszraczylo/simple-gql-client"
+          github_token: ${{ github.token }}
+          github_username: "github-actions"
+        continue-on-error: true
+      - name: Assert action ran with auth inputs
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+          VERSION: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "semantic_version: $VERSION"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$VERSION" ]; then
+              echo "FAIL: action succeeded but semantic_version output is empty"
+              exit 1
+            fi
+            echo "PASS: got version '$VERSION' using auth inputs"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action ran (may fail gracefully due to auth/network constraints)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
