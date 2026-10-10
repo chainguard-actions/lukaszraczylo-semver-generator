@@ -1,0 +1,212 @@
+package utils
+
+import (
+	"fmt"
+	"net/url"
+	"os"
+	"sort"
+	"time"
+
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+)
+
+// CommitDetails represents a git commit
+type CommitDetails struct {
+	Timestamp time.Time
+	Hash      string
+	Author    string
+	Message   string
+}
+
+// TagDetails represents a git tag
+type TagDetails struct {
+	Name string
+	Hash string
+}
+
+// GitRepository represents a git repository
+type GitRepository struct {
+	Handler     *git.Repository
+	Name        string
+	Branch      string
+	LocalPath   string
+	UseLocal    bool
+	Commits     []CommitDetails
+	Tags        []TagDetails
+	StartCommit string
+}
+
+// PrepareRepository prepares the git repository for use
+func PrepareRepository(repo *GitRepository) error {
+	var err error
+
+	if !repo.UseLocal {
+		u, err := url.Parse(repo.Name)
+		if err != nil {
+			Error("Unable to parse repository URL", map[string]interface{}{
+				"error": err.Error(),
+				"url":   repo.Name,
+			})
+			return err
+		}
+
+		repo.LocalPath = fmt.Sprintf("/tmp/semver/%s/%s", u.Path, repo.Branch)
+		_ = os.RemoveAll(repo.LocalPath) // Ignore error - directory may not exist
+
+		repo.Handler, err = git.PlainClone(repo.LocalPath, false, &git.CloneOptions{
+			URL:           repo.Name,
+			ReferenceName: plumbing.NewBranchReferenceName(repo.Branch),
+			SingleBranch:  true,
+			Auth: &http.BasicAuth{
+				Username: os.Getenv("GITHUB_USERNAME"),
+				Password: os.Getenv("GITHUB_TOKEN"),
+			},
+			Tags: git.AllTags,
+		})
+
+		if err != nil {
+			Error("Unable to clone repository", map[string]interface{}{
+				"error": err.Error(),
+				"url":   repo.Name,
+			})
+			return err
+		}
+	} else {
+		repo.LocalPath = "./"
+		repo.Handler, err = git.PlainOpen(repo.LocalPath)
+		if err != nil {
+			Error("Unable to open local repository", map[string]interface{}{
+				"error": err.Error(),
+				"path":  repo.LocalPath,
+			})
+			return err
+		}
+	}
+
+	if err := os.Chdir(repo.LocalPath); err != nil {
+		Error("Unable to change directory", map[string]interface{}{
+			"error": err.Error(),
+			"path":  repo.LocalPath,
+		})
+		return err
+	}
+	return nil
+}
+
+// ListCommits lists all commits in the repository
+func ListCommits(repo *GitRepository) ([]CommitDetails, error) {
+	var ref *plumbing.Reference
+	var err error
+
+	// Check if Handler is nil to avoid panic
+	if repo.Handler == nil {
+		Debug("Repository handler is nil, skipping commit listing", nil)
+		return repo.Commits, nil
+	}
+
+	ref, err = repo.Handler.Head()
+	if err != nil {
+		return []CommitDetails{}, err
+	}
+
+	commitsList, err := repo.Handler.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return []CommitDetails{}, err
+	}
+
+	var tmpResults []CommitDetails
+	if err := commitsList.ForEach(func(c *object.Commit) error {
+		tmpResults = append(tmpResults, CommitDetails{
+			Hash:      c.Hash.String(),
+			Author:    c.Author.String(),
+			Message:   c.Message,
+			Timestamp: c.Author.When,
+		})
+		sort.Slice(tmpResults, func(i, j int) bool {
+			return tmpResults[i].Timestamp.Unix() < tmpResults[j].Timestamp.Unix()
+		})
+		return nil
+	}); err != nil {
+		return []CommitDetails{}, err
+	}
+
+	Debug("Listing commits", map[string]interface{}{"commits": tmpResults})
+
+	// Filter commits starting after the specified commit if provided
+	if repo.StartCommit != "" {
+		found := false
+		for commitId, cmt := range tmpResults {
+			if cmt.Hash == repo.StartCommit {
+				Debug("Found commit match", map[string]interface{}{
+					"commit": cmt.Hash,
+					"index":  commitId,
+				})
+				// Start from the commit AFTER the specified one
+				repo.Commits = tmpResults[commitId+1:]
+				found = true
+				break
+			}
+		}
+		if !found {
+			// If specified commit not found, use all commits
+			repo.Commits = tmpResults
+		}
+	} else {
+		repo.Commits = tmpResults
+	}
+
+	Debug("Commits after filtering", map[string]interface{}{"commits": repo.Commits})
+	return repo.Commits, err
+}
+
+// ListExistingTags lists all tags in the repository
+// ListExistingTags lists all tags in the repository.
+// Tags that don't parse as proper semver (rolling tags like "v1" or "latest")
+// are skipped so they can't out-rank real semver tags pointing to the same
+// commit during latest-tag selection.
+func ListExistingTags(repo *GitRepository, tagPrefixes []string) {
+	Debug("Listing existing tags", nil)
+
+	if repo.Handler == nil {
+		Debug("Repository handler is nil, skipping tag listing", nil)
+		return
+	}
+
+	refs, err := repo.Handler.Tags()
+	if err != nil {
+		Error("Unable to list tags", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	if err := refs.ForEach(func(ref *plumbing.Reference) error {
+		tagName := ref.Name().Short()
+
+		if !IsParseableSemverTag(tagName, tagPrefixes) {
+			Debug("Skipping non-semver tag", map[string]interface{}{"tag": tagName})
+			return nil
+		}
+
+		commitHash := ref.Hash().String()
+		tagObj, err := repo.Handler.TagObject(ref.Hash())
+		if err == nil {
+			commitHash = tagObj.Target.String()
+		}
+
+		repo.Tags = append(repo.Tags, TagDetails{
+			Name: tagName,
+			Hash: commitHash,
+		})
+
+		Debug("Found tag", map[string]interface{}{
+			"tag":  tagName,
+			"hash": commitHash,
+		})
+
+		return nil
+	}); err != nil {
+		Error("Error iterating tags", map[string]interface{}{"error": err.Error()})
+	}
+}
