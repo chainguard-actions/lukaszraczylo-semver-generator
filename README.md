@@ -17,6 +17,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1.17.8 | [`v1.17.8`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.17.8) | [`a59be0e`](https://github.com/lukaszraczylo/semver-generator/commit/a59be0efeaba93d4eaed29340334537e2d73ce98) |
 | v1.18.19 | [`v1.18.19`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.19) | [`59d62e0`](https://github.com/lukaszraczylo/semver-generator/commit/59d62e0f2b05971c0eff43e1f894531d0a2c9a0f) |
 | v1.18.2 | [`v1.18.2`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.2) | [`f7ae4c0`](https://github.com/lukaszraczylo/semver-generator/commit/f7ae4c042f2649bbf4cb1bc7f9d10bb06f390fd4) |
+| v1.18.21 | [`v1.18.21`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.21) | [`9079698`](https://github.com/lukaszraczylo/semver-generator/commit/90796980d0c6f55cd48ff87615d0658beb7c768d) |
 
 ## Privacy
 
