@@ -1,0 +1,43 @@
+name: Test local repository usage
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up git origin reachable inside Docker container
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          rm -rf "$GITHUB_WORKSPACE/.git-remote"
+          git init --bare "$GITHUB_WORKSPACE/.git-remote"
+          git push "$GITHUB_WORKSPACE/.git-remote" HEAD:refs/heads/act-harness
+          git push "$GITHUB_WORKSPACE/.git-remote" --tags
+          git remote set-url origin "$GITHUB_WORKSPACE/.git-remote" 2>/dev/null || \
+            git remote add origin "$GITHUB_WORKSPACE/.git-remote"
+
+      - id: semver
+        uses: .
+        with:
+          config_file: "${{ github.workspace }}/tests/fixtures/semver-config.yaml"
+          repository_local: "true"
+
+      - name: Assert semantic_version output is non-empty
+        env:
+          ACTUAL: ${{ steps.semver.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: semantic_version output is empty"
+            exit 1
+          fi
+          # Validate it looks like a semver (digits separated by dots)
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: '$ACTUAL' does not look like a semantic version"
+            exit 1
+          fi
+          echo "PASS: semantic_version=$ACTUAL"
