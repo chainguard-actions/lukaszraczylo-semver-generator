@@ -1,0 +1,38 @@
+name: Test forced major version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Remove existing tags so they cannot override the forced start version
+        run: |
+          TAGS="$(git tag -l)"
+          if [ -n "$TAGS" ]; then
+            echo "$TAGS" | xargs git tag -d > /dev/null
+          fi
+          echo "remaining tags: $(git tag -l | wc -l)"
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config-force.yaml
+          repository_url: ""
+          repository_local: "true"
+      - name: Assert major version is at least the forced value
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: output is not a semantic version"
+            exit 1
+          fi
+          MAJOR="${ACTUAL%%.*}"
+          if [ "$MAJOR" -lt 5 ]; then
+            echo "FAIL: expected major >= 5, got $MAJOR"
+            exit 1
+          fi
+          echo "PASS"

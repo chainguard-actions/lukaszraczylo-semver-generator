@@ -1,0 +1,16 @@
+version: 1
+blacklist:
+  - "Merge branch"
+  - "Merge pull request"
+wording:
+  patch:
+    - update
+    - initial
+    - fix
+  minor:
+    - change
+    - improve
+  major:
+    - breaking
+  release:
+    - release-candidate

@@ -1,0 +1,35 @@
+name: Test local repository with debug mode
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_url: ""
+          repository_local: "true"
+          debugmode: "true"
+      - name: Assert output is non-empty
+        if: ${{ steps.action.outputs.semantic_version == '' }}
+        run: |
+          echo "FAIL: semantic_version output is empty"
+          exit 1
+      - name: Assert semantic version output (debug output is large, so use a file not env)
+        run: |
+          cat > "$RUNNER_TEMP/semver-out.txt" <<'SEMVER_OUTPUT_END'
+          ${{ steps.action.outputs.semantic_version }}
+          SEMVER_OUTPUT_END
+          echo "output size: $(wc -c < "$RUNNER_TEMP/semver-out.txt") bytes"
+          LAST="$(tr -s '[:space:]' '\n' < "$RUNNER_TEMP/semver-out.txt" | grep -v '^$' | tail -n 1)"
+          echo "last token: $LAST"
+          if ! echo "$LAST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: output does not end with a semantic version"
+            exit 1
+          fi
+          echo "PASS"
