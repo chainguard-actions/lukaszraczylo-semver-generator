@@ -1,0 +1,46 @@
+name: Test forced major version from config
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Point HEAD at a synthetic, deterministic commit history
+        run: |
+          set -e
+          export GIT_AUTHOR_NAME=Test GIT_AUTHOR_EMAIL=test@example.com
+          export GIT_COMMITTER_NAME=Test GIT_COMMITTER_EMAIL=test@example.com
+          git symbolic-ref HEAD > /tmp/orig-head
+          TREE=$(git mktree < /dev/null)
+          mk() { ts="$1"; shift; GIT_AUTHOR_DATE="@$ts +0000" GIT_COMMITTER_DATE="@$ts +0000" git commit-tree "$TREE" "$@"; }
+          c1=$(mk 1704067201 -m "xxbreak stuff")
+          c2=$(mk 1704067202 -p "$c1" -m "kkfeat thing")
+          c3=$(mk 1704067203 -p "$c2" -m "qqfix one")
+          c4=$(mk 1704067204 -p "$c3" -m "qqfix two")
+          c5=$(mk 1704067205 -p "$c4" -m "docs only")
+          git update-ref refs/heads/semver-test-force "$c5"
+          git symbolic-ref HEAD refs/heads/semver-test-force
+          git log --oneline HEAD
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config-force.yaml
+          repository_local: "true"
+          strict: "true"
+      - name: Restore HEAD
+        if: always()
+        run: |
+          git symbolic-ref HEAD "$(cat /tmp/orig-head)" || true
+          git update-ref -d refs/heads/semver-test-force || true
+      - name: Assert semantic version
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          # forced start 5.0.0 (strict): xxbreak -> 6.0.1, kkfeat -> 6.1.1, qqfix x2 -> 6.1.3
+          if [ "$ACTUAL" != "6.1.3" ]; then
+            echo "FAIL: expected '6.1.3'"
+            exit 1
+          fi
+          echo "PASS"

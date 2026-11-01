@@ -1,0 +1,15 @@
+version: 1
+force:
+  existing: true
+  strict: false
+blacklist:
+  - "skipme"
+wording:
+  patch:
+    - qqfix
+  minor:
+    - kkfeat
+  major:
+    - xxbreak
+  release:
+    - jjrc
