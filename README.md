@@ -22,6 +22,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1.18.29 | [`v1.18.29`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.29) | [`c266ed8`](https://github.com/lukaszraczylo/semver-generator/commit/c266ed8967ee80afe22eb38937e4eb2a6608fd32) | [`HARDENING.md`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/blob/v1.18.29/HARDENING.md) |
 | v1.18.31 | [`v1.18.31`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.31) | [`06ae482`](https://github.com/lukaszraczylo/semver-generator/commit/06ae4821d0eefb6c4f0ac767721cc429147d142b) | [`HARDENING.md`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/blob/v1.18.31/HARDENING.md) |
 | v1.18.33 | [`v1.18.33`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.33) | [`585545c`](https://github.com/lukaszraczylo/semver-generator/commit/585545c07be9154258e372f8aa4fb104a3054343) | [`HARDENING.md`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/blob/v1.18.33/HARDENING.md) |
+| v1.18.35 | [`v1.18.35`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/tree/v1.18.35) | [`c980e03`](https://github.com/lukaszraczylo/semver-generator/commit/c980e030f767c3449c39b4ed8902b3dfe713aa23) | [`HARDENING.md`](https://github.com/chainguard-actions/lukaszraczylo-semver-generator/blob/v1.18.35/HARDENING.md) |
 
 ## Privacy
 
