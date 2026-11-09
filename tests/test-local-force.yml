@@ -1,0 +1,31 @@
+name: Test local repository with extra fix commit and force config
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Add a commit to the local repository
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git commit --allow-empty -m "fix: update something"
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/config-force.yaml
+          repository_local: "true"
+          repository_url: ""
+      - name: Assert output is a clean semantic version
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "FAIL: output is not a clean semantic version (SEMVER prefix should be stripped)"
+            exit 1
+          fi
+          echo "PASS"
