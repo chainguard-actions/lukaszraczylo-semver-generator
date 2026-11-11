@@ -1,0 +1,27 @@
+name: Test strict and debug mode on local repository
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-basic.yaml
+          repository_local: "true"
+          strict: "true"
+          debugmode: "true"
+      - name: Assert semantic_version is a valid semver
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: expected a semantic version like X.Y.Z"
+            exit 1
+          fi
+          echo "PASS"

@@ -1,0 +1,46 @@
+name: Test forced major version on a crafted local repository
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Swap in a tag-less crafted git repository at the workspace root
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          rm -rf "$RUNNER_TEMP/orig-git"
+          mv .git "$RUNNER_TEMP/orig-git"
+          git init -q
+          git symbolic-ref HEAD refs/heads/main
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git commit -q --allow-empty -m "first commit"
+          git commit -q --allow-empty -m "fix the bug"
+          git commit -q --allow-empty -m "another fix"
+          git log --oneline
+          git tag -l
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-force.yaml
+          repository_local: "true"
+      - name: Restore original git repository
+        if: always()
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if [ -d "$RUNNER_TEMP/orig-git" ]; then
+            rm -rf .git
+            mv "$RUNNER_TEMP/orig-git" .git
+          fi
+      - name: Assert major version is forced to 42
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^42\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: expected version starting with 42."
+            exit 1
+          fi
+          echo "PASS"
