@@ -1,0 +1,43 @@
+name: Test debug mode on local repository
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Create tagged baseline and keyword commits
+        run: |
+          set -e
+          export GIT_AUTHOR_NAME="Test User" GIT_AUTHOR_EMAIL="test@example.com"
+          export GIT_COMMITTER_NAME="Test User" GIT_COMMITTER_EMAIL="test@example.com"
+          NOW=$(date +%s)
+          HEADTS=$(git log -1 --format=%ct HEAD)
+          BASE=$(( NOW > HEADTS ? NOW : HEADTS ))
+          c() {
+            TS=$((BASE + $1))
+            GIT_AUTHOR_DATE="@$TS +0000" GIT_COMMITTER_DATE="@$TS +0000" \
+              git commit --allow-empty -q -m "$2"
+          }
+          c 100 "test baseline"
+          git tag -f v3.0.0
+          c 200 "test patchword one"
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_local: "true"
+          debugmode: "true"
+      - name: Assert semantic version still produced in debug mode
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          LAST=$(echo "$ACTUAL" | awk '{print $NF}')
+          if ! echo "$LAST" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+            echo "FAIL: output is not a semantic version: '$LAST'"
+            exit 1
+          fi
+          echo "PASS: got '$LAST'"

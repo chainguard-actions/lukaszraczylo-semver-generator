@@ -1,0 +1,17 @@
+version: 1
+force:
+  existing: true
+  strict: false
+blacklist:
+  - "Merge branch"
+  - "Merge pull request"
+tag_prefixes: []
+wording:
+  patch:
+    - patchword
+  minor:
+    - minorword
+  major:
+    - majorword
+  release:
+    - rcword
