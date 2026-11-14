@@ -1,0 +1,53 @@
+name: Test strict, existing and debug mode
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      # Remote cloning from inside the Docker container fails under the harness
+      # (x509: certificate signed by unknown authority), so use the local repo.
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_local: "true"
+          strict: "true"
+          existing: "true"
+          debugmode: "true"
+      # In debug mode the output holds the full debug log followed by the
+      # version. That is too large for an env var (argument list too long), so
+      # write it to a file with a quoted heredoc instead.
+      - name: Save output to a file
+        run: |
+          cat > "$RUNNER_TEMP/semver-output.txt" <<'SEMVER_OUTPUT_END_7f3a'
+          ${{ steps.action.outputs.semantic_version }}
+          SEMVER_OUTPUT_END_7f3a
+      - name: Assert semantic_version ends with a valid semver
+        run: |
+          OUT="$RUNNER_TEMP/semver-output.txt"
+          SIZE=$(wc -c < "$OUT")
+          echo "output size: $SIZE bytes"
+          if [ "$SIZE" -le 1 ]; then
+            echo "FAIL: output is empty"
+            exit 1
+          fi
+          VERSION=$(tr -s '[:space:]' '\n' < "$OUT" | grep -v '^$' | tail -n 1)
+          echo "version (last token): $VERSION"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+            echo "FAIL: last token of output is not a semantic version"
+            tail -c 2000 "$OUT"
+            exit 1
+          fi
+          MAJOR="${VERSION%%.*}"
+          if [ "$MAJOR" -lt 1 ]; then
+            echo "FAIL: expected major >= 1 (config forces major 1)"
+            exit 1
+          fi
+          if grep -q '"level":"debug"' "$OUT"; then
+            echo "debug output detected (debugmode active)"
+          fi
+          echo "PASS"
