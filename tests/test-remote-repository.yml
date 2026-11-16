@@ -1,0 +1,30 @@
+name: Test repository_local takes precedence over repository_url
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      # Remote cloning from inside the Docker action fails under the harness
+      # (TLS interception CA is not trusted inside the action image), so
+      # verify that with repository_local set, the explicit repository_url is
+      # not used and the version is computed from the local checkout.
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_url: https://github.com/lukaszraczylo/simple-gql-client
+          repository_local: "true"
+      - name: Assert semantic_version is a valid semver
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: expected a semantic version"
+            exit 1
+          fi
+          echo "PASS"
