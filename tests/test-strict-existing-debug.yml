@@ -1,0 +1,42 @@
+name: Test strict, existing and debug flags
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      # Use the already-checked-out repo: the container cannot reach github.com over
+      # TLS under the harness (x509 unknown authority), so remote cloning is impossible.
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_local: "true"
+          strict: "true"
+          existing: "true"
+          debugmode: "true"
+      # With debugmode the output also contains the full debug log (very large), so it
+      # cannot be passed through an env var (argument list too long). Write it to a
+      # file through a quoted heredoc in the script body instead and check the final token.
+      - name: Assert semantic_version ends with a valid semver
+        run: |
+          cat > /tmp/semver-output.txt <<'SEMVER_OUTPUT_END_7f3a'
+          ${{ steps.action.outputs.semantic_version }}
+          SEMVER_OUTPUT_END_7f3a
+          SIZE=$(wc -c < /tmp/semver-output.txt)
+          echo "output size: $SIZE bytes"
+          LAST="$(tr -s '[:space:]' '\n' < /tmp/semver-output.txt | grep -v '^$' | tail -n 1)"
+          echo "final token: $LAST"
+          if ! echo "$LAST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$'; then
+            echo "FAIL: '$LAST' is not a semantic version"
+            exit 1
+          fi
+          MAJOR="${LAST%%.*}"
+          if [ "$MAJOR" -lt 1 ]; then
+            echo "FAIL: expected major >= 1, got $MAJOR"
+            exit 1
+          fi
+          echo "PASS"
