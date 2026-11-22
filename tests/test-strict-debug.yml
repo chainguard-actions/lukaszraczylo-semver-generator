@@ -1,0 +1,39 @@
+name: Test local repository with strict, existing and debug modes
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver.yaml
+          repository_local: "true"
+          strict: "true"
+          existing: "true"
+          debugmode: "true"
+      # In debug mode the output contains all debug log lines followed by the
+      # version, which is too large to pass through an env var (E2BIG). Write it
+      # to a file via a quoted heredoc instead and inspect the last token.
+      - name: Assert semantic_version ends with a valid semver
+        run: |
+          cat > "$RUNNER_TEMP/semver-output.txt" <<'SEMVER_OUTPUT_END_7f3a'
+          ${{ steps.action.outputs.semantic_version }}
+          SEMVER_OUTPUT_END_7f3a
+          SIZE=$(wc -c < "$RUNNER_TEMP/semver-output.txt")
+          echo "output size: $SIZE bytes"
+          LAST=$(tr -s '[:space:]' '\n' < "$RUNNER_TEMP/semver-output.txt" | grep -v '^$' | tail -n 1)
+          echo "last token: $LAST"
+          if ! echo "$LAST" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: expected output to end with a semantic version like X.Y.Z"
+            exit 1
+          fi
+          if ! grep -q 'level' "$RUNNER_TEMP/semver-output.txt"; then
+            echo "FAIL: expected debug log lines in output when debugmode is enabled"
+            exit 1
+          fi
+          echo "PASS"
