@@ -1,0 +1,33 @@
+name: Test respecting existing tags on local repository
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Create an existing semver tag on HEAD
+        run: |
+          git tag -f v3.0.0 HEAD
+          git tag --list
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_local: "true"
+          existing: "true"
+      - name: Assert semantic_version is a valid semver
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: output is not a semantic version"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Clean up tag
+        if: always()
+        run: git tag -d v3.0.0 || true
