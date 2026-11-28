@@ -1,0 +1,37 @@
+name: Test local repository respecting existing tags
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Set git identity and create an existing semver tag
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git tag -f v3.0.0 HEAD
+          git tag -l
+      - id: action
+        uses: .
+        with:
+          config_file: tests/fixtures/semver-config.yaml
+          repository_local: "true"
+          existing: "true"
+      - name: Assert semantic version is valid
+        env:
+          ACTUAL: ${{ steps.action.outputs.semantic_version }}
+        run: |
+          echo "actual: $ACTUAL"
+          if ! echo "$ACTUAL" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "FAIL: output is not a semantic version"
+            exit 1
+          fi
+          MAJOR="${ACTUAL%%.*}"
+          if [ "$MAJOR" -lt 1 ]; then
+            echo "FAIL: expected major >= 1 (forced by config)"
+            exit 1
+          fi
+          echo "PASS"
